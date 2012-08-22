@@ -57,6 +57,15 @@ action :before_restart do
     before_fork new_resource.before_fork
   end
 
+  command = new_resource.unicorn_command
+  if command.nil?
+    if ::File.exists?(::File.join(new_resource.path, "current", "config.ru"))
+      command = 'unicorn'
+    else
+      command = 'unicorn_rails'
+    end
+  end
+
   runit_service new_resource.name do
     template_name 'unicorn'
     owner new_resource.owner if new_resource.owner 
@@ -66,7 +75,7 @@ action :before_restart do
     options(
       :app => new_resource,
       :rails_env => new_resource.environment_name,
-      :smells_like_rack => ::File.exists?(::File.join(new_resource.path, "current", "config.ru"))
+      :command => command
     )
     run_restart false
   end
